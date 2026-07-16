@@ -1,0 +1,11 @@
+services:
+  app:
+    container_name: opencodeboard
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file: .env
+    volumes:
+      - ./data/sqlite:/app/data
+    restart: unless-stopped
+
