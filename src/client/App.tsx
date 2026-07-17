@@ -17,7 +17,7 @@ import {
   refreshOne,
   updateAccount,
 } from "./lib/api";
-import { usageStatus } from "./lib/format";
+import { computeSummary } from "./lib/format";
 import type { Account, AccountFormData, AccountWithUsage } from "./types";
 
 export default function App() {
@@ -74,28 +74,7 @@ export default function App() {
     };
   }, [autoRefresh]);
 
-  const summary = useMemo(() => {
-    const withUsage = accounts.filter((a) => a.usage && !a.usage.error);
-    const danger = withUsage.filter((a) => {
-      const u = a.usage!;
-      const max = Math.max(
-        u.rolling?.usagePercent ?? 0,
-        u.weekly?.usagePercent ?? 0,
-        u.monthly?.usagePercent ?? 0
-      );
-      return usageStatus(max) === "danger";
-    }).length;
-    const warn = withUsage.filter((a) => {
-      const u = a.usage!;
-      const max = Math.max(
-        u.rolling?.usagePercent ?? 0,
-        u.weekly?.usagePercent ?? 0,
-        u.monthly?.usagePercent ?? 0
-      );
-      return usageStatus(max) === "warn";
-    }).length;
-    return { total: accounts.length, danger, warn };
-  }, [accounts]);
+  const summary = useMemo(() => computeSummary(accounts.filter((a) => a.usage && !a.usage.error)), [accounts]);
 
   async function handleLogout() {
     await logout();
@@ -213,11 +192,19 @@ export default function App() {
           </Text>
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-kumo-subtle">
             <span>共 {summary.total} 个账号</span>
-            {summary.warn > 0 ? (
-              <span className="text-kumo-warning">⚠ {summary.warn} 个接近上限</span>
+            {(summary.weeklyWarn > 0 || summary.weeklyDanger > 0) ? (
+              <span>
+                每周用量:
+                {summary.weeklyWarn > 0 ? <span className="text-kumo-warning"> {summary.weeklyWarn}个余量不足</span> : null}
+                {summary.weeklyDanger > 0 ? <span className="text-kumo-danger"> {summary.weeklyDanger}个即将耗尽</span> : null}
+              </span>
             ) : null}
-            {summary.danger > 0 ? (
-              <span className="text-kumo-danger">● {summary.danger} 个需关注</span>
+            {(summary.monthlyWarn > 0 || summary.monthlyDanger > 0) ? (
+              <span>
+                每月用量:
+                {summary.monthlyWarn > 0 ? <span className="text-kumo-warning"> {summary.monthlyWarn}个余量不足</span> : null}
+                {summary.monthlyDanger > 0 ? <span className="text-kumo-danger"> {summary.monthlyDanger}个即将耗尽</span> : null}
+              </span>
             ) : null}
           </div>
         </div>
@@ -232,7 +219,7 @@ export default function App() {
               onClick={() => setMenuOpen((v) => !v)}
             >
               <ArrowsClockwise size={16} className="absolute left-3 top-1/2 -translate-y-1/2" />
-              <span>{autoRefresh > 0 ? `${autoRefresh / 60}分自动` : '刷新策略'}</span>
+              <span>{autoRefresh > 0 ? `自动刷新(${autoRefresh / 60}分钟)` : '刷新策略'}</span>
             </button>
             {menuOpen ? (
               <div

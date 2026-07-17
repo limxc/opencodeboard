@@ -20,10 +20,9 @@ interface Props {
 
 function relativeTime(ts: number): string {
   const diff = Date.now() - ts;
-  const sec = Math.floor(diff / 1000);
-  if (sec < 60) return `${sec}秒`;
-  const min = Math.floor(sec / 60);
-  return `${min}分钟`;
+  if (diff < 300_000) return "刚刚";
+  const min = Math.floor(diff / 60_000);
+  return `距今${min}分钟`;
 }
 
 export default function AccountTable({
@@ -36,7 +35,7 @@ export default function AccountTable({
 }: Props) {
   const [, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 10000);
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
   }, []);
   if (accounts.length === 0) {
@@ -156,7 +155,7 @@ export default function AccountTable({
                   as="p"
                   DANGEROUS_className={`m-0 mt-3 text-[11px] ${Date.now() - new Date(usage.fetchedAt).getTime() > 3600000 ? "text-kumo-warning" : ""}`}
                 >
-                  距今 {relativeTime(new Date(usage.fetchedAt).getTime())},  更新于 {new Date(usage.fetchedAt).toLocaleString("zh-CN")}
+                  {relativeTime(new Date(usage.fetchedAt).getTime())},  更新于 {new Date(usage.fetchedAt).toLocaleString("zh-CN")}
                 </Text>
               ) : null}
             </div>
