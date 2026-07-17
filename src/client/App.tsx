@@ -210,7 +210,7 @@ export default function App() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <div className="relative w-36" onBlur={() => setTimeout(() => setMenuOpen(false), 200)}>
+          <div className="relative w-40" onBlur={() => setTimeout(() => setMenuOpen(false), 200)}>
             <button
               type="button"
               className="inline-flex w-full h-9 cursor-pointer items-center rounded-lg pl-9 pr-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
@@ -232,6 +232,7 @@ export default function App() {
                   { label: '自动刷新(5分钟)', value: 300 },
                   { label: '自动刷新(10分钟)', value: 600 },
                   { label: '自动刷新(30分钟)', value: 1800 },
+                  { label: '自动刷新(60分钟)', value: 3600 },
                 ].map((opt) => (
                   <button
                     key={opt.value}
