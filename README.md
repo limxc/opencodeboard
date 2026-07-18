@@ -1,6 +1,6 @@
 # OpenCodeBoard
 
-自托管多账号 OpenCode Go 额度监控面板, Secret Key / API Key 未加密存储, 仅供个人使用。
+自托管多账号 OpenCode Go 额度监控面板, Auth Cookie / API Key 未加密存储, 仅供个人使用。
 
 ![1](media/1.jpg)
 ![2](media/2.jpg)
@@ -8,11 +8,11 @@
 ## 功能
 
 - 密码保护的管理后台
-- 多账号增删改查，支持 API Key 管理
+- 多账号增删改查
 - 一键刷新单个或全部账号额度
 - 双图表用量历史（费用 + Token 用量），31 天计费周期
 - 用量接近上限时高亮提示
-- Secret Key / API Key 独立存储，显示/隐藏/复制
+- API Key 独立存储，显示/隐藏/复制
 - Express + React 全栈，SQLite 存储
 - 支持 Docker 部署
 
