@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const MONTH_MS = 31 * 86400 * 1000;
 import AccountDialog from "./components/AccountDialog";
+import Toast from "./components/Toast";
 import AccountTable from "./components/AccountTable";
 import HistoryDialog from "./components/HistoryDialog";
 import LoginForm from "./components/LoginForm";
@@ -142,6 +143,9 @@ export default function App() {
       if (form.authCookie.trim()) {
         payload.authCookie = form.authCookie;
       }
+      if (form.apiKey.trim()) {
+        payload.apiKey = form.apiKey;
+      }
       const updated = await updateAccount(editingAccount.id, payload);
       setAccounts((prev) =>
         prev.map((a) =>
@@ -185,26 +189,27 @@ export default function App() {
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <Text variant="heading2" as="h1" DANGEROUS_className="m-0">
-            OpenCode Go 额度管理
+            OpenCode Go 多账号看板
           </Text>
-          <Text variant="secondary" as="p" DANGEROUS_className="m-0 mt-1 text-sm">
-            多账号用量看板
-          </Text>
-          <div className="mt-2 flex flex-wrap gap-3 text-xs text-kumo-subtle">
-            <span>共 {summary.total} 个账号</span>
-            {(summary.weeklyWarn > 0 || summary.weeklyDanger > 0) ? (
-              <span>
-                每周用量:
-                {summary.weeklyWarn > 0 ? <span className="text-kumo-warning"> {summary.weeklyWarn}个余量不足</span> : null}
-                {summary.weeklyDanger > 0 ? <span className="text-kumo-danger"> {summary.weeklyDanger}个即将耗尽</span> : null}
-              </span>
-            ) : null}
-            {(summary.monthlyWarn > 0 || summary.monthlyDanger > 0) ? (
-              <span>
-                每月用量:
-                {summary.monthlyWarn > 0 ? <span className="text-kumo-warning"> {summary.monthlyWarn}个余量不足</span> : null}
-                {summary.monthlyDanger > 0 ? <span className="text-kumo-danger"> {summary.monthlyDanger}个即将耗尽</span> : null}
-              </span>
+          <div className="mt-2 text-xs text-kumo-subtle">
+            <div>共 {summary.total} 个账号</div>
+            {(summary.weeklyWarn > 0 || summary.weeklyDanger > 0 || summary.monthlyWarn > 0 || summary.monthlyDanger > 0) ? (
+              <div className="mt-1">
+                {(summary.weeklyWarn > 0 || summary.weeklyDanger > 0) ? (
+                  <div>
+                    每周用量:
+                    {summary.weeklyWarn > 0 ? <span className="text-kumo-warning"> {summary.weeklyWarn}个余量不足</span> : null}
+                    {summary.weeklyDanger > 0 ? <span className="text-kumo-danger"> {summary.weeklyDanger}个即将耗尽</span> : null}
+                  </div>
+                ) : null}
+                {(summary.monthlyWarn > 0 || summary.monthlyDanger > 0) ? (
+                  <div>
+                    每月用量:
+                    {summary.monthlyWarn > 0 ? <span className="text-kumo-warning"> {summary.monthlyWarn}个余量不足</span> : null}
+                    {summary.monthlyDanger > 0 ? <span className="text-kumo-danger"> {summary.monthlyDanger}个即将耗尽</span> : null}
+                  </div>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </div>
@@ -213,8 +218,7 @@ export default function App() {
           <div className="relative w-40" onBlur={() => setTimeout(() => setMenuOpen(false), 200)}>
             <button
               type="button"
-              className="inline-flex w-full h-9 cursor-pointer items-center rounded-lg pl-9 pr-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
-              style={{ backgroundColor: '#2563eb' }}
+              className="inline-flex w-full h-9 cursor-pointer items-center rounded-lg pl-9 pr-3 text-sm font-medium text-white shadow-sm disabled:opacity-50 bg-kumo-info"
               disabled={refreshingAll || accounts.length === 0}
               onClick={() => setMenuOpen((v) => !v)}
             >
@@ -302,6 +306,8 @@ export default function App() {
         onSave={handleSave}
       />
 
+      <Toast />
+
       <HistoryDialog
         open={historyAccount !== null}
         onOpenChange={(open) => {
@@ -325,7 +331,14 @@ export default function App() {
         as="p"
         DANGEROUS_className="m-0 mt-8 text-center text-xs"
       >
-        Cookie获取路径: 开发者工具 → 应用程序 → Cookie → https://opencode.ai → auth → 值
+        Workspace ID获取路径: 登录OpenCode → https://opencode.ai/workspace/<span className="text-kumo-success">wrk_ ... 0CH</span>
+      </Text>
+      <Text
+        variant="secondary"
+        as="p"
+        DANGEROUS_className="m-0 text-center text-xs mt-1"
+      >
+        Cookie获取路径: 开发者工具 → 应用程序 → Cookie → https://opencode.ai → auth → <span className="text-kumo-success">值</span>
       </Text>
     </div>
   );

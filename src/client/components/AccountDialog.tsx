@@ -21,6 +21,7 @@ const EMPTY_FORM: AccountFormData = {
   name: "",
   workspaceId: "",
   authCookie: "",
+  apiKey: "",
   notes: "",
 };
 
@@ -44,6 +45,7 @@ export default function AccountDialog({
               name: account.name,
               workspaceId: account.workspaceId,
               authCookie: "",
+              apiKey: "",
               notes: account.notes,
             }
           : EMPTY_FORM
@@ -69,24 +71,21 @@ export default function AccountDialog({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog className="max-w-lg p-6">
         <Dialog.Title>{isEdit ? "编辑账号" : "添加账号"}</Dialog.Title>
-        <Dialog.Description className="mt-1">
-          从浏览器开发者工具复制 auth Cookie 和 Workspace ID。Cookie 保存后不会再次显示。
-        </Dialog.Description>
 
         <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="account-name">显示名称</Label>
+            <Label htmlFor="account-name">名称 *</Label>
             <Input
               id="account-name"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="张三 / 主号 / dev-team-01"
+              placeholder="账号显示名称"
               required
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="workspace-id">Workspace ID</Label>
+            <Label htmlFor="workspace-id">Workspace ID *</Label>
             <Input
               id="workspace-id"
               value={form.workspaceId}
@@ -100,7 +99,7 @@ export default function AccountDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="auth-cookie">
-              Auth Cookie{isEdit ? "（留空则保持不变）" : ""}
+              Auth Cookie *{isEdit ? "（留空则保持不变）" : ""}
             </Label>
             <SensitiveInput
               id="auth-cookie"
@@ -108,20 +107,34 @@ export default function AccountDialog({
               onChange={(e) =>
                 setForm((f) => ({ ...f, authCookie: e.target.value }))
               }
-              placeholder="Fe26.2**..."
+              placeholder="Fe26.xxx"
               required={!isEdit}
               autoComplete="off"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="account-notes">备注（可选）</Label>
+            <Label htmlFor="api-key">
+              API Key{isEdit ? "（留空则保持不变）" : ""}
+            </Label>
+            <SensitiveInput
+              id="api-key"
+              value={form.apiKey}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, apiKey: e.target.value }))
+              }
+              placeholder="默认显示为***"
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="account-notes">备注</Label>
             <Textarea
               id="account-notes"
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              placeholder="团队、用途、到期提醒等"
-              rows={2}
+              rows={4}
             />
           </div>
 

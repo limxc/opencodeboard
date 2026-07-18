@@ -20,6 +20,8 @@ export interface Account {
   createdAt: number;
   updatedAt: number;
   hasCookie: boolean;
+  hasApiKey: boolean;
+  apiKey?: string;
 }
 
 export interface AccountWithUsage extends Account {
@@ -66,5 +68,6 @@ export interface AccountFormData {
   name: string;
   workspaceId: string;
   authCookie: string;
+  apiKey: string;
   notes: string;
 }

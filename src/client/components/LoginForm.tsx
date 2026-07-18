@@ -46,7 +46,7 @@ export default function LoginForm({ onSuccess }: Props) {
           className="w-full max-w-sm rounded-lg border border-kumo-line bg-kumo-elevated p-6 shadow-sm"
         >
           <Text variant="heading3" as="h1" DANGEROUS_className="m-0">
-            OpenCode Go 额度管理
+            OpenCode Go 多账号看板
           </Text>
           <Text variant="secondary" as="p" DANGEROUS_className="m-0 mt-2 text-sm">
             输入管理密码查看账号用量。

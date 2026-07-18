@@ -15,6 +15,8 @@ function toPublic(row: AccountRow): AccountPublic {
     workspaceId: row.workspace_id,
     notes: row.notes,
     hasCookie: !!row.auth_cookie,
+    hasApiKey: !!row.api_key,
+    apiKey: row.api_key || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     usage,
@@ -48,10 +50,10 @@ export function createAccount(body: CreateAccountBody): AccountPublic {
   const id = randomUUID();
   const now = Date.now();
   db.prepare(
-    `INSERT INTO accounts (id, name, workspace_id, auth_cookie, notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, body.name, body.workspaceId, body.authCookie, body.notes || '', now, now);
-  return toPublic({ id, name: body.name, workspace_id: body.workspaceId, auth_cookie: body.authCookie, notes: body.notes || '', last_usage: '', created_at: now, updated_at: now });
+    `INSERT INTO accounts (id, name, workspace_id, auth_cookie, api_key, notes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, body.name, body.workspaceId, body.authCookie, body.apiKey || '', body.notes || '', now, now);
+  return toPublic({ id, name: body.name, workspace_id: body.workspaceId, auth_cookie: body.authCookie, api_key: body.apiKey || '', notes: body.notes || '', last_usage: '', created_at: now, updated_at: now });
 }
 
 export function updateAccount(id: string, body: UpdateAccountBody): AccountPublic | null {
@@ -63,6 +65,7 @@ export function updateAccount(id: string, body: UpdateAccountBody): AccountPubli
   if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
   if (body.workspaceId !== undefined) { updates.push('workspace_id = ?'); params.push(body.workspaceId); }
   if (body.authCookie !== undefined) { updates.push('auth_cookie = ?'); params.push(body.authCookie); }
+  if (body.apiKey !== undefined) { updates.push('api_key = ?'); params.push(body.apiKey); }
   if (body.notes !== undefined) { updates.push('notes = ?'); params.push(body.notes); }
   if (updates.length === 0) return toPublic(existing);
   updates.push('updated_at = ?');
@@ -139,7 +142,7 @@ export function getAggregatedHistory(accountId: string, cycleStart: number, cycl
             SUM(input_tokens) AS total_input,
             SUM(output_tokens) AS total_output
      FROM usage_history
-     WHERE created_at >= ?${cycleEnd ? ' AND created_at < ?' : ''}
+     WHERE created_at >= ?${cycleEnd ? ' AND created_at <= ?' : ''}
      GROUP BY date((created_at + 8*3600*1000) / 1000, 'unixepoch'), model
      ORDER BY date ASC`
   ).all(cycleEnd ? [cycleStart, cycleEnd] : [cycleStart]) as any[];

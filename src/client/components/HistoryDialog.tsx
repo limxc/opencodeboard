@@ -70,7 +70,7 @@ function buildChartData(items: AggregatedHistoryItem[] | undefined, rangeStart?:
   const data: ChartData[] = [];
   const start = rangeStart ? new Date(rangeStart) : new Date();
   const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 30);
+  end.setUTCDate(end.getUTCDate() + 31);
   for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
     const dateStr = d.toISOString().slice(0, 10);
     const entry: ChartData = { date: dateStr, label: fmtLabel(dateStr) };
@@ -97,7 +97,7 @@ function buildTokenChartData(items: AggregatedHistoryItem[] | undefined, rangeSt
   const data: ChartData[] = [];
   const start = rangeStart ? new Date(rangeStart) : new Date();
   const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 30);
+  end.setUTCDate(end.getUTCDate() + 31);
   for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
     const dateStr = d.toISOString().slice(0, 10);
     const entry: ChartData = { date: dateStr, label: fmtLabel(dateStr) };
@@ -386,7 +386,7 @@ export default function HistoryDialog({
               </div>
               <div className="flex-1 min-h-0" style={{ backgroundColor: CHART_BG, border: `1px solid ${CHART_GRID}`, borderRadius: 8, padding: 16, position: "relative" }}>
                 <span style={{ position: "absolute", top: 4, right: 12, fontSize: 11, color: CHART_TEXT, fontWeight: 500, zIndex: 5 }}>
-                  Token用量
+                  Token用量 ( Input + Output )
                 </span>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={tokenData.chartData}>

@@ -126,7 +126,7 @@ export async function fetchGoQuota(
   }
 
   if (!foundAny) {
-    throw new Error("无法从页面解析额度数据，OpenCode 页面结构可能已变更");
+    throw new Error("解析页面额度数据失败");
   }
 
   return usage;

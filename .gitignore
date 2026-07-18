@@ -20,3 +20,4 @@ docs/
 AGENTS.md
 CLAUDE.md
 skills-lock.json
+.server-pids.json

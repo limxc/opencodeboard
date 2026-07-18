@@ -2,12 +2,16 @@ import { Button, Text } from "@cloudflare/kumo";
 import {
   ArrowsClockwise,
   ClockCounterClockwise,
+  ClipboardText,
+  Eye,
+  EyeSlash,
   PencilSimple,
   Trash,
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import type { AccountWithUsage } from "../types";
 import UsageBar from "./UsageBar";
+import { toast } from "./Toast";
 
 interface Props {
   accounts: AccountWithUsage[];
@@ -34,6 +38,7 @@ export default function AccountTable({
   onHistory,
 }: Props) {
   const [, setTick] = useState(0);
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
@@ -71,16 +76,57 @@ export default function AccountTable({
                   DANGEROUS_className="m-0 mt-1 font-mono text-xs"
                 >
                   <a
-                    href={`https://opencode.ai/workspace/${encodeURIComponent(account.workspaceId)}/go`}
+                    href={`https://opencode.ai/workspace/${encodeURIComponent(account.workspaceId)}/usage`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline"
+                    className="text-kumo-link hover:underline"
                   >
                     {account.workspaceId}
                   </a>
                   {usage?.plan ? ` · ${usage.plan}` : ""}
                 </Text>
-                {account.notes ? (
+                  {account.hasApiKey && account.apiKey ? (
+                    <span className="mt-1 flex items-center gap-1 font-mono text-xs text-kumo-subtle">
+                      <span className="truncate">
+                        {visibleKeys.has(account.id) ? account.apiKey : "••••••••••••"}
+                      </span>
+                      <button
+                        type="button"
+                        className="cursor-pointer hover:text-kumo-text"
+                        onClick={() =>
+                          setVisibleKeys((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(account.id)) next.delete(account.id);
+                            else next.add(account.id);
+                            return next;
+                          })
+                        }
+                        title={visibleKeys.has(account.id) ? "隐藏" : "显示"}
+                      >
+                        {visibleKeys.has(account.id) ? (
+                          <EyeSlash size={14} />
+                        ) : (
+                          <Eye size={14} />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="cursor-pointer hover:text-kumo-text"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(account.apiKey!);
+                            toast("Copied API Key");
+                          } catch {
+                            toast("Copy failed");
+                          }
+                        }}
+                        title="复制"
+                      >
+                        <ClipboardText size={14} />
+                      </button>
+                    </span>
+                  ) : null}
+                  {account.notes ? (
                   <Text
                     variant="secondary"
                     as="p"
@@ -145,7 +191,7 @@ export default function AccountTable({
                 </div>
               ) : (
                 <Text variant="secondary" as="p" DANGEROUS_className="m-0 text-sm">
-                  尚未查询额度，点击「刷新」或「全部刷新」。
+                  点击「刷新」查询额度
                 </Text>
               )}
 

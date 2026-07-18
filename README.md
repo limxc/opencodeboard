@@ -1,17 +1,18 @@
 # OpenCodeBoard
 
-自托管多账号 OpenCode Go 额度监控面板。
- 
+自托管多账号 OpenCode Go 额度监控面板, Secret Key / API Key 未加密存储, 仅供个人使用。
+
 ![1](media/1.jpg)
 ![2](media/2.jpg)
 
 ## 功能
 
 - 密码保护的管理后台
-- 多账号增删改查
+- 多账号增删改查，支持 API Key 管理
 - 一键刷新单个或全部账号额度
 - 双图表用量历史（费用 + Token 用量），31 天计费周期
 - 用量接近上限时高亮提示
+- Secret Key / API Key 独立存储，显示/隐藏/复制
 - Express + React 全栈，SQLite 存储
 - 支持 Docker 部署
 
@@ -23,18 +24,17 @@ docker pull limxc/opencodeboard:latest
 
 ```yaml
 services:
-  app:
-    image: limxc/opencodeboard:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - PASSWD=123456 #修改为强密码
-      - PORT=3000
-    volumes:
-      - ./data/sqlite:/app/data
-    restart: unless-stopped
+    app:
+        image: limxc/opencodeboard:latest
+        ports:
+            - "3000:3000"
+        environment:
+            - PASSWD=123456 #修改为强密码
+            - PORT=3000
+        volumes:
+            - ./data/sqlite:/app/data
+        restart: unless-stopped
 ```
-
 
 ```bash
 docker compose up -d
@@ -42,20 +42,22 @@ docker compose up -d
 
 ## 开发
 
-```bash
-# 前端（Vite 开发服务器）
-npm run dev
+使用 `dev.ps1` 管理开发服务器（PowerShell 5.1）：
 
-# 后端（热重载）
-npm run dev:server
+```bash
+# 前端（Vite 开发服务器 :3000）
+npm run dev -- --port 3000
+
+# 后端（热重载 :3001）
+set PORT=3001 && npm run dev:server
 ```
 
 ## 配置（.env）
 
-| 变量 | 说明 |
-|------|------|
-| `PASSWD` | 管理后台登录密码 |
-| `PORT` | 服务器端口（默认 3000） |
+| 变量     | 说明                    |
+| -------- | ----------------------- |
+| `PASSWD` | 管理后台登录密码        |
+| `PORT`   | 服务器端口（默认 3000） |
 
 ## 获取 Auth Cookie & Workspace ID
 
@@ -70,10 +72,11 @@ npm run dev:server
 │   ├── client/               # React 前端（Vite）
 │   │   ├── components/       # UI 组件
 │   │   │   ├── AccountDialog.tsx    # 账号表单弹窗
-│   │   │   ├── AccountTable.tsx     # 账号列表
+│   │   │   ├── AccountTable.tsx     # 账号列表（卡片）
 │   │   │   ├── ErrorBoundary.tsx    # 错误边界
 │   │   │   ├── HistoryDialog.tsx    # 用量历史弹窗（双图表）
 │   │   │   ├── LoginForm.tsx        # 登录页
+│   │   │   ├── Toast.tsx            # Toast 通知
 │   │   │   └── UsageBar.tsx         # 用量进度条
 │   │   ├── lib/
 │   │   │   ├── api.ts         # API 客户端（含 SSE 流式读取）
@@ -89,7 +92,7 @@ npm run dev:server
 │   │   ├── index.ts           # 路由 + 迁移 + SSE 端点
 │   │   ├── migrate.ts         # 独立迁移脚本
 │   │   ├── quota.ts           # OpenCode 抓取（额度 + 历史）
-│   │   └── types.ts           # 类型定义 
+│   │   └── types.ts           # 类型定义
 ├── migrations/
 │   ├── accounts/              # accounts 表迁移
 │   └── usage_history/         # usage_history 表迁移
@@ -100,6 +103,7 @@ npm run dev:server
 ├── docs/
 │   └── superpowers/           # 设计文档、实施计划、验证报告
 ├── openspec/                  # OpenSpec 变更记录
+├── dev.ps1                    # 开发服务器管理脚本
 ├── push-to-registry.ps1       # 构建推送脚本
 ├── docker-compose.yml
 └── vite.config.ts
