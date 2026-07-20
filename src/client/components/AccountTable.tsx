@@ -9,7 +9,8 @@ import {
   PencilSimple,
   Trash,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import { useEffect, useState } from "react";
 import type { AccountWithUsage } from "../types";
 import UsageBar from "./UsageBar";
 import { toast } from "./Toast";
@@ -48,8 +49,6 @@ export default function AccountTable({
 }: Props) {
   const [, setTick] = useState(0);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
-  const dragId = useRef<string | null>(null);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
@@ -66,60 +65,34 @@ export default function AccountTable({
   }
 
   return (
-    <div className="grid gap-4">
-      {accounts.map((account) => {
+    <DragDropContext onDragEnd={(result) => {
+      if (!result.destination) return;
+      const reordered = [...accounts];
+      const [moved] = reordered.splice(result.source.index, 1);
+      reordered.splice(result.destination.index, 0, moved);
+      onReorder(reordered);
+    }}>
+      <Droppable droppableId="accounts">
+        {(provided) => (
+          <div ref={provided.innerRef} {...provided.droppableProps} className="grid gap-4">
+      {accounts.map((account, index) => {
         const refreshing = refreshingIds.has(account.id);
         const usage = account.usage;
         const hasError = Boolean(usage?.error);
-        const isDragOver = dragOverId === account.id;
 
         return (
+          <Draggable key={account.id} draggableId={account.id} index={index}>
+            {(dragProvided, snapshot) => (
           <div
-            key={account.id}
-            className={`flex items-start gap-2 rounded-lg border bg-kumo-elevated p-4 shadow-sm transition-shadow ${isDragOver ? 'border-blue-400 shadow-md' : 'border-kumo-line'}`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              if (dragId.current && dragId.current !== account.id) {
-                setDragOverId(account.id);
-              }
-            }}
-            onDragLeave={() => {
-              setDragOverId((prev) => prev === account.id ? null : prev);
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              const fromId = e.dataTransfer.getData('text/plain');
-              if (!fromId || fromId === account.id) {
-                setDragOverId(null);
-                return;
-              }
-              const oldIdx = accounts.findIndex((a) => a.id === fromId);
-              const newIdx = accounts.findIndex((a) => a.id === account.id);
-              if (oldIdx === -1 || newIdx === -1) {
-                setDragOverId(null);
-                return;
-              }
-              const reordered = [...accounts];
-              const [moved] = reordered.splice(oldIdx, 1);
-              reordered.splice(newIdx, 0, moved);
-              setDragOverId(null);
-              dragId.current = null;
-              onReorder(reordered);
-            }}
+            ref={dragProvided.innerRef}
+            {...dragProvided.draggableProps}
+            className={`flex items-start gap-2 rounded-lg border bg-kumo-elevated p-4 shadow-sm ${snapshot.isDragging ? 'shadow-lg ring-2 ring-blue-400' : 'border-kumo-line'}`}
+            style={dragProvided.draggableProps.style}
           >
             <button
               type="button"
-              draggable="true"
               className="mt-1 cursor-grab active:cursor-grabbing text-kumo-subtle hover:text-kumo-text touch-none shrink-0"
-              onDragStart={(e) => {
-                dragId.current = account.id;
-                e.dataTransfer.setData('text/plain', account.id);
-                e.dataTransfer.effectAllowed = 'move';
-              }}
-              onDragEnd={() => {
-                setDragOverId(null);
-                dragId.current = null;
-              }}
+              {...dragProvided.dragHandleProps}
             >
               <DotsSixVertical size={18} />
             </button>
@@ -266,8 +239,13 @@ export default function AccountTable({
             </div>
           </article>
           </div>
+            )}
+          </Draggable>
         );
       })}
-    </div>
+      </div>
+        )}
+      </Droppable>
+    </DragDropContext>
   );
 }
