@@ -10,7 +10,8 @@ import {
   Trash,
 } from "@phosphor-icons/react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import type { AccountWithUsage } from "../types";
 import UsageBar from "./UsageBar";
 import { toast } from "./Toast";
@@ -49,18 +50,15 @@ export default function AccountTable({
 }: Props) {
   const [, setTick] = useState(0);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
-  const reorderRef = useRef(onReorder);
-  const accountsRef = useRef(accounts);
-  reorderRef.current = onReorder;
-  accountsRef.current = accounts;
   const handleDragEnd = useCallback((result: any) => {
     if (!result.destination) return;
-    const currentAccounts = accountsRef.current;
-    const reordered = [...currentAccounts];
+    const reordered = [...accounts];
     const [moved] = reordered.splice(result.source.index, 1);
     reordered.splice(result.destination.index, 0, moved);
-    reorderRef.current(reordered);
-  }, []);
+    flushSync(() => {
+      onReorder(reordered);
+    });
+  }, [accounts, onReorder]);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
@@ -80,7 +78,7 @@ export default function AccountTable({
     <DragDropContext onDragEnd={handleDragEnd}>
       <Droppable droppableId="accounts">
         {(provided) => (
-          <div ref={provided.innerRef} {...provided.droppableProps} className="grid gap-4">
+          <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-col gap-4">
       {accounts.map((account, index) => {
         const refreshing = refreshingIds.has(account.id);
         const usage = account.usage;

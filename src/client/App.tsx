@@ -166,13 +166,13 @@ export default function App() {
   }
 
   async function handleReorder(reordered: AccountWithUsage[]) {
-    setAccounts(reordered);
     const orders = reordered.map((a, i) => ({ id: a.id, sort_order: i }));
+    setAccounts(reordered);
     try {
       await reorderAccounts(orders);
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存排序失败');
-      await loadAccounts();
+      setAccounts(await fetchAccounts());
     }
   }
 
