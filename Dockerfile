@@ -1,17 +1,16 @@
-FROM node:22-alpine AS build
+FROM node:22-slim AS build
 WORKDIR /app
-RUN apk add --no-cache build-base python3
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:22-alpine AS runtime
+FROM node:22-slim AS runtime
 WORKDIR /app
-RUN apk add --no-cache sqlite
+RUN apt-get update && apt-get install -y --no-install-recommends sqlite3 && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/migrations ./migrations
 COPY --from=build /app/package.json ./
 EXPOSE 3000
-CMD ["npx", "tsx", "dist/server/index.js"]
+CMD ["node", "dist/server/index.js"]
