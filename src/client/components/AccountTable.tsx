@@ -3,26 +3,13 @@ import {
   ArrowsClockwise,
   ClockCounterClockwise,
   ClipboardText,
+  DotsSixVertical,
   Eye,
   EyeSlash,
   PencilSimple,
   Trash,
 } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
-import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { useEffect, useRef, useState } from "react";
 import type { AccountWithUsage } from "../types";
 import UsageBar from "./UsageBar";
 import { toast } from "./Toast";
@@ -50,37 +37,6 @@ function relativeTime(ts: number): string {
   return `距今${days}天${hrs > 0 ? hrs + '小时' : ''}`;
 }
 
-function SortableCard({
-  account,
-  children,
-}: {
-  account: AccountWithUsage;
-  children: React.ReactNode;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: account.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    position: "relative" as const,
-    zIndex: isDragging ? 50 : "auto",
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
-    </div>
-  );
-}
-
 export default function AccountTable({
   accounts,
   refreshingIds,
@@ -92,24 +48,12 @@ export default function AccountTable({
 }: Props) {
   const [, setTick] = useState(0);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const dragId = useRef<string | null>(null);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
   }, []);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = accounts.findIndex((a) => a.id === active.id);
-    const newIndex = accounts.findIndex((a) => a.id === over.id);
-    const reordered = [...accounts];
-    const [moved] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, moved);
-    onReorder(reordered);
-  }
 
   if (accounts.length === 0) {
     return (
@@ -122,18 +66,64 @@ export default function AccountTable({
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={accounts.map((a) => a.id)} strategy={verticalListSortingStrategy}>
     <div className="grid gap-4">
       {accounts.map((account) => {
         const refreshing = refreshingIds.has(account.id);
         const usage = account.usage;
         const hasError = Boolean(usage?.error);
+        const isDragOver = dragOverId === account.id;
 
         return (
-          <SortableCard key={account.id} account={account}>
-            <article className="rounded-lg border border-kumo-line bg-kumo-elevated p-4 shadow-sm"
+          <div
+            key={account.id}
+            className={`flex items-start gap-2 rounded-lg border bg-kumo-elevated p-4 shadow-sm transition-shadow ${isDragOver ? 'border-blue-400 shadow-md' : 'border-kumo-line'}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (dragId.current && dragId.current !== account.id) {
+                setDragOverId(account.id);
+              }
+            }}
+            onDragLeave={() => {
+              setDragOverId((prev) => prev === account.id ? null : prev);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const fromId = e.dataTransfer.getData('text/plain');
+              if (!fromId || fromId === account.id) {
+                setDragOverId(null);
+                return;
+              }
+              const oldIdx = accounts.findIndex((a) => a.id === fromId);
+              const newIdx = accounts.findIndex((a) => a.id === account.id);
+              if (oldIdx === -1 || newIdx === -1) {
+                setDragOverId(null);
+                return;
+              }
+              const reordered = [...accounts];
+              const [moved] = reordered.splice(oldIdx, 1);
+              reordered.splice(newIdx, 0, moved);
+              setDragOverId(null);
+              dragId.current = null;
+              onReorder(reordered);
+            }}
+          >
+            <button
+              type="button"
+              draggable="true"
+              className="mt-1 cursor-grab active:cursor-grabbing text-kumo-subtle hover:text-kumo-text touch-none shrink-0"
+              onDragStart={(e) => {
+                dragId.current = account.id;
+                e.dataTransfer.setData('text/plain', account.id);
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragEnd={() => {
+                setDragOverId(null);
+                dragId.current = null;
+              }}
             >
+              <DotsSixVertical size={18} />
+            </button>
+            <article className="flex-1 min-w-0">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <Text variant="heading4" as="h2" DANGEROUS_className="m-0">
@@ -275,11 +265,9 @@ export default function AccountTable({
               ) : null}
             </div>
           </article>
-          </SortableCard>
+          </div>
         );
       })}
     </div>
-    </SortableContext>
-  </DndContext>
   );
 }
