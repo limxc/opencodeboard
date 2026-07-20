@@ -119,6 +119,19 @@ app.post('/api/accounts', requireAuth, (req, res) => {
   }
 });
 
+app.put('/api/accounts/reorder', requireAuth, (req, res) => {
+  try {
+    const { orders } = req.body as { orders: { id: string; sort_order: number }[] };
+    if (!Array.isArray(orders)) {
+      return res.status(400).json({ error: 'orders 必须是数组' });
+    }
+    reorderAccounts(orders);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : '排序失败' });
+  }
+});
+
 app.put('/api/accounts/:id', requireAuth, (req, res) => {
   try {
     const body = req.body as UpdateAccountBody;
@@ -148,19 +161,6 @@ app.delete('/api/accounts/:id', requireAuth, (req, res) => {
   const ok = deleteAccount(id);
   if (!ok) return res.status(404).json({ error: '账号不存在' });
   res.json({ ok: true });
-});
-
-app.put('/api/accounts/reorder', requireAuth, (req, res) => {
-  try {
-    const { orders } = req.body as { orders: { id: string; sort_order: number }[] };
-    if (!Array.isArray(orders)) {
-      return res.status(400).json({ error: 'orders 必须是数组' });
-    }
-    reorderAccounts(orders);
-    return res.json({ ok: true });
-  } catch (err) {
-    return res.status(500).json({ error: err instanceof Error ? err.message : '排序失败' });
-  }
 });
 
 app.post('/api/accounts/:id/refresh', requireAuth, async (req, res) => {
