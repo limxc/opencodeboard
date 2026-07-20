@@ -1,11 +1,11 @@
-FROM node:22-slim AS build
+FROM node:22 AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:22-slim AS runtime
+FROM node:22 AS runtime
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends sqlite3 && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/dist ./dist
