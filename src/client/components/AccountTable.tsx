@@ -14,6 +14,7 @@ import {
   DndContext,
   DragEndEvent,
   PointerSensor,
+  closestCenter,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -22,6 +23,7 @@ import {
   verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { AccountWithUsage } from "../types";
 import UsageBar from "./UsageBar";
 import { toast } from "./Toast";
@@ -41,7 +43,13 @@ function relativeTime(ts: number): string {
   const diff = Date.now() - ts;
   if (diff < 300_000) return "刚刚";
   const min = Math.floor(diff / 60_000);
-  return `距今${min}分钟`;
+  if (min < 60) return `距今${min}分钟`;
+  const hours = Math.floor(min / 60);
+  const mins = min % 60;
+  if (hours < 24) return `距今${hours}小时${mins > 0 ? mins + '分钟' : ''}`;
+  const days = Math.floor(hours / 24);
+  const hrs = hours % 24;
+  return `距今${days}天${hrs > 0 ? hrs + '小时' : ''}`;
 }
 
 export default function AccountTable({
@@ -85,7 +93,7 @@ export default function AccountTable({
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={undefined} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={accounts.map((a) => a.id)} strategy={verticalListSortingStrategy}>
     <div className="grid gap-4">
       {accounts.map((account) => {
@@ -102,7 +110,7 @@ export default function AccountTable({
         } = useSortable({ id: account.id });
         const dragStyle = transform
           ? {
-              transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+              transform: CSS.Transform.toString(transform),
               transition,
               opacity: isDragging ? 0.5 : 1,
               zIndex: isDragging ? 50 : "auto",
