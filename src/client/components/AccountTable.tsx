@@ -10,7 +10,7 @@ import {
   Trash,
 } from "@phosphor-icons/react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AccountWithUsage } from "../types";
 import UsageBar from "./UsageBar";
 import { toast } from "./Toast";
@@ -49,6 +49,18 @@ export default function AccountTable({
 }: Props) {
   const [, setTick] = useState(0);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const reorderRef = useRef(onReorder);
+  const accountsRef = useRef(accounts);
+  reorderRef.current = onReorder;
+  accountsRef.current = accounts;
+  const handleDragEnd = useCallback((result: any) => {
+    if (!result.destination) return;
+    const currentAccounts = accountsRef.current;
+    const reordered = [...currentAccounts];
+    const [moved] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, moved);
+    reorderRef.current(reordered);
+  }, []);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
@@ -65,13 +77,7 @@ export default function AccountTable({
   }
 
   return (
-    <DragDropContext onDragEnd={(result) => {
-      if (!result.destination) return;
-      const reordered = [...accounts];
-      const [moved] = reordered.splice(result.source.index, 1);
-      reordered.splice(result.destination.index, 0, moved);
-      onReorder(reordered);
-    }}>
+    <DragDropContext onDragEnd={handleDragEnd}>
       <Droppable droppableId="accounts">
         {(provided) => (
           <div ref={provided.innerRef} {...provided.droppableProps} className="grid gap-4">
