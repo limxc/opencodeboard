@@ -14,6 +14,7 @@ import {
   deleteAccount,
   fetchAccounts,
   logout,
+  reorderAccounts,
   refreshAll,
   refreshOne,
   updateAccount,
@@ -154,7 +155,7 @@ export default function App() {
       );
     } else {
       const created = await createAccount(form);
-      setAccounts((prev) => [...prev, { ...created, usage: null }]);
+      setAccounts((prev) => [{ ...created, usage: null }, ...prev]);
     }
   }
 
@@ -162,6 +163,17 @@ export default function App() {
     if (!confirm(`确定删除账号「${account.name}」？`)) return;
     await deleteAccount(account.id);
     setAccounts((prev) => prev.filter((a) => a.id !== account.id));
+  }
+
+  async function handleReorder(reordered: AccountWithUsage[]) {
+    setAccounts(reordered);
+    const orders = reordered.map((a, i) => ({ id: a.id, sort_order: i }));
+    try {
+      await reorderAccounts(orders);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存排序失败');
+      await loadAccounts();
+    }
   }
 
   if (authed === null) {
@@ -296,6 +308,7 @@ export default function App() {
           }}
           onDelete={handleDelete}
           onHistory={(account) => setHistoryAccount(account)}
+          onReorder={handleReorder}
         />
       )}
 

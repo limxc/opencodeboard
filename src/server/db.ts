@@ -36,7 +36,7 @@ export function saveAccountUsage(id: string, usage: UsageResult): void {
 
 export function listAccounts(): AccountPublic[] {
   const db = getDb();
-  const rows = db.prepare('SELECT * FROM accounts ORDER BY name COLLATE NOCASE').all() as AccountRow[];
+  const rows = db.prepare('SELECT * FROM accounts ORDER BY sort_order ASC, created_at DESC').all() as AccountRow[];
   return rows.map(toPublic);
 }
 
@@ -92,6 +92,18 @@ export function deleteAccount(id: string): boolean {
     throw new Error(`删除数据库文件失败: ${err}`);
   }
   return true;
+}
+
+export function reorderAccounts(orders: { id: string; sort_order: number }[]): void {
+  const db = getDb();
+  const stmt = db.prepare('UPDATE accounts SET sort_order = ?, updated_at = ? WHERE id = ?');
+  const now = Date.now();
+  const updateMany = db.transaction(() => {
+    for (const { id, sort_order } of orders) {
+      stmt.run(sort_order, now, id);
+    }
+  });
+  updateMany();
 }
 
 export function saveUsageHistoryItems(accountId: string, items: UsageHistoryItem[]): number {

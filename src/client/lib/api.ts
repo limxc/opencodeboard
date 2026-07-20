@@ -161,3 +161,12 @@ export async function fetchAggregatedHistory(
   const data = await request<AggregatedHistoryResult>(url, { method: "GET" });
   return data;
 }
+
+export async function reorderAccounts(
+  orders: { id: string; sort_order: number }[]
+): Promise<void> {
+  await request("/api/accounts/reorder", {
+    method: "PUT",
+    body: JSON.stringify({ orders }),
+  });
+}

@@ -15,6 +15,7 @@ import {
   createAccount,
   updateAccount,
   deleteAccount,
+  reorderAccounts,
   saveAccountUsage,
   saveUsageHistoryItems,
   getUsageHistory,
@@ -149,6 +150,19 @@ app.delete('/api/accounts/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+app.put('/api/accounts/reorder', requireAuth, (req, res) => {
+  try {
+    const { orders } = req.body as { orders: { id: string; sort_order: number }[] };
+    if (!Array.isArray(orders)) {
+      return res.status(400).json({ error: 'orders 必须是数组' });
+    }
+    reorderAccounts(orders);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : '排序失败' });
+  }
+});
+
 app.post('/api/accounts/:id/refresh', requireAuth, async (req, res) => {
   const id = req.params.id as string;
   const row = getAccountRow(id);
@@ -159,13 +173,15 @@ app.post('/api/accounts/:id/refresh', requireAuth, async (req, res) => {
     saveAccountUsage(id, usage);
     return res.json({ id, usage });
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : '查询失败';
+    const hasHistory = getLatestHistoryCursor(id) > 0;
     const usage = {
       rolling: null,
       weekly: null,
       monthly: null,
       plan: '',
       fetchedAt: new Date().toISOString(),
-      error: err instanceof Error ? err.message : '查询失败',
+      error: hasHistory ? errMsg : '新账号暂无数据',
     };
     return res.json({ id, usage });
   }
@@ -304,13 +320,15 @@ app.post('/api/refresh', requireAuth, async (req, res) => {
           saveAccountUsage(account.id, usage);
           return { ...account, usage };
         } catch (err) {
+          const errMsg = err instanceof Error ? err.message : '查询失败';
+          const hasHistory = getLatestHistoryCursor(account.id) > 0;
           const usage = {
             rolling: null,
             weekly: null,
             monthly: null,
             plan: '',
             fetchedAt: new Date().toISOString(),
-            error: err instanceof Error ? err.message : '查询失败',
+            error: hasHistory ? errMsg : '新账号暂无数据',
           };
           return { ...account, usage };
         }

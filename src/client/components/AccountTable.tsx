@@ -5,13 +5,27 @@ import {
   ClipboardText,
   Eye,
   EyeSlash,
+  DotsSixVertical,
   PencilSimple,
   Trash,
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
 import type { AccountWithUsage } from "../types";
 import UsageBar from "./UsageBar";
 import { toast } from "./Toast";
+import { reorderAccounts } from "../lib/api";
 
 interface Props {
   accounts: AccountWithUsage[];
@@ -20,6 +34,7 @@ interface Props {
   onEdit: (account: AccountWithUsage) => void;
   onDelete: (account: AccountWithUsage) => void;
   onHistory: (account: AccountWithUsage) => void;
+  onReorder: (accounts: AccountWithUsage[]) => void;
 }
 
 function relativeTime(ts: number): string {
@@ -36,6 +51,7 @@ export default function AccountTable({
   onEdit,
   onDelete,
   onHistory,
+  onReorder,
 }: Props) {
   const [, setTick] = useState(0);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
@@ -43,6 +59,21 @@ export default function AccountTable({
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
   }, []);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = accounts.findIndex((a) => a.id === active.id);
+    const newIndex = accounts.findIndex((a) => a.id === over.id);
+    const reordered = [...accounts];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    onReorder(reordered);
+  }
+
   if (accounts.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-kumo-line bg-kumo-elevated p-10 text-center">
@@ -54,17 +85,44 @@ export default function AccountTable({
   }
 
   return (
+    <DndContext sensors={sensors} collisionDetection={undefined} onDragEnd={handleDragEnd}>
+      <SortableContext items={accounts.map((a) => a.id)} strategy={verticalListSortingStrategy}>
     <div className="grid gap-4">
       {accounts.map((account) => {
         const refreshing = refreshingIds.has(account.id);
         const usage = account.usage;
         const hasError = Boolean(usage?.error);
+        const {
+          attributes,
+          listeners,
+          setNodeRef,
+          transform,
+          transition,
+          isDragging,
+        } = useSortable({ id: account.id });
+        const dragStyle = transform
+          ? {
+              transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+              transition,
+              opacity: isDragging ? 0.5 : 1,
+              zIndex: isDragging ? 50 : "auto",
+              position: "relative" as const,
+            }
+          : undefined;
 
         return (
-          <article
-            key={account.id}
-            className="rounded-lg border border-kumo-line bg-kumo-elevated p-4 shadow-sm"
-          >
+          <div ref={setNodeRef} style={dragStyle} key={account.id}>
+            <div className="flex items-start gap-2">
+              <button
+                type="button"
+                className="mt-4 cursor-grab active:cursor-grabbing text-kumo-subtle hover:text-kumo-text touch-none"
+                {...attributes}
+                {...listeners}
+              >
+                <DotsSixVertical size={18} />
+              </button>
+              <article className="flex-1 rounded-lg border border-kumo-line bg-kumo-elevated p-4 shadow-sm"
+              >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <Text variant="heading4" as="h2" DANGEROUS_className="m-0">
@@ -179,9 +237,9 @@ export default function AccountTable({
                 <Text
                   variant="secondary"
                   as="p"
-                  DANGEROUS_className="m-0 text-sm text-kumo-danger"
+                  DANGEROUS_className={`m-0 text-sm ${usage?.error === '新账号暂无数据' ? 'text-kumo-warning' : 'text-kumo-danger'}`}
                 >
-                  {usage?.error}
+                  {usage?.error === '新账号暂无数据' ? '新账号暂无数据，可消耗 token 后刷新重试' : usage?.error}
                 </Text>
               ) : usage ? (
                 <div className="grid grid-cols-1 gap-x-12 gap-y-4 sm:grid-cols-3">
@@ -206,8 +264,12 @@ export default function AccountTable({
               ) : null}
             </div>
           </article>
+            </div>
+          </div>
         );
       })}
     </div>
+    </SortableContext>
+  </DndContext>
   );
 }
