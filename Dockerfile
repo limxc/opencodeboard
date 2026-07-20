@@ -2,7 +2,7 @@ FROM node:22-alpine AS build
 WORKDIR /app
 RUN apk add --no-cache python3 make g++
 COPY package*.json ./
-RUN npm_config_build_from_source=true npm ci
+RUN npm ci
 COPY . .
 RUN npm run build
 
