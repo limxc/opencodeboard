@@ -5,7 +5,6 @@ import {
   ClipboardText,
   Eye,
   EyeSlash,
-  DotsSixVertical,
   PencilSimple,
   Trash,
 } from "@phosphor-icons/react";
@@ -27,7 +26,6 @@ import { CSS } from "@dnd-kit/utilities";
 import type { AccountWithUsage } from "../types";
 import UsageBar from "./UsageBar";
 import { toast } from "./Toast";
-import { reorderAccounts } from "../lib/api";
 
 interface Props {
   accounts: AccountWithUsage[];
@@ -50,6 +48,37 @@ function relativeTime(ts: number): string {
   const days = Math.floor(hours / 24);
   const hrs = hours % 24;
   return `距今${days}天${hrs > 0 ? hrs + '小时' : ''}`;
+}
+
+function SortableCard({
+  account,
+  children,
+}: {
+  account: AccountWithUsage;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: account.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: "relative" as const,
+    zIndex: isDragging ? 50 : "auto",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
 }
 
 export default function AccountTable({
@@ -100,37 +129,11 @@ export default function AccountTable({
         const refreshing = refreshingIds.has(account.id);
         const usage = account.usage;
         const hasError = Boolean(usage?.error);
-        const {
-          attributes,
-          listeners,
-          setNodeRef,
-          transform,
-          transition,
-          isDragging,
-        } = useSortable({ id: account.id });
-        const dragStyle = transform
-          ? {
-              transform: CSS.Transform.toString(transform),
-              transition,
-              opacity: isDragging ? 0.5 : 1,
-              zIndex: isDragging ? 50 : "auto",
-              position: "relative" as const,
-            }
-          : undefined;
 
         return (
-          <div ref={setNodeRef} style={dragStyle} key={account.id}>
-            <div className="flex items-start gap-2">
-              <button
-                type="button"
-                className="mt-4 cursor-grab active:cursor-grabbing text-kumo-subtle hover:text-kumo-text touch-none"
-                {...attributes}
-                {...listeners}
-              >
-                <DotsSixVertical size={18} />
-              </button>
-              <article className="flex-1 rounded-lg border border-kumo-line bg-kumo-elevated p-4 shadow-sm"
-              >
+          <SortableCard key={account.id} account={account}>
+            <article className="rounded-lg border border-kumo-line bg-kumo-elevated p-4 shadow-sm"
+            >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <Text variant="heading4" as="h2" DANGEROUS_className="m-0">
@@ -272,8 +275,7 @@ export default function AccountTable({
               ) : null}
             </div>
           </article>
-            </div>
-          </div>
+          </SortableCard>
         );
       })}
     </div>
