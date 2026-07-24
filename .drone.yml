@@ -1,0 +1,46 @@
+kind: pipeline
+type: docker
+name: default
+
+trigger:
+  branch:
+    - main
+  event:
+    - push
+
+steps:
+  - name: build
+    image: docker:27
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    commands:
+      - docker build -t opencodeboard:latest .
+
+  - name: deploy
+    image: docker:27
+    depends_on: [build]
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    environment:
+      PASSWD:
+        from_secret: passwd
+    commands:
+      - docker volume inspect opencodeboard-data 2>/dev/null || docker volume create opencodeboard-data
+      - docker rm -f opencodeboard 2>/dev/null || true
+      - docker run -d
+          --name opencodeboard
+          --restart unless-stopped
+          -p 7120:3000
+          -e PASSWD=$PASSWD
+          -e PORT=3000
+          -v opencodeboard-data:/app/data
+          opencodeboard:latest
+      - sleep 3
+      - docker ps --filter name=opencodeboard --format "{{.Status}}"
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
